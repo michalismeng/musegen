@@ -17,12 +17,28 @@ def loadChorales():
     iterator = getChoralesIterator()
 
     # load notes of chorales
-    for chorale in iterator[1:maxChorales + 1]:             # iterator is 1-based                         
+    for chorale in iterator[1:maxChorales]:             # iterator is 1-based                        
         transpose_to_C_A(chorale.parts[0])
         notes = notes + parseToFlatArray(chorale.parts[0])
         notes.append((['end'], 0.0))                        # mark the end of the piece
     
     return notes
+
+# loads chorales as above along with the key signature of each one
+def loadChoralesWithKeys():
+    notes = []
+    iterator = getChoralesIterator()
+    orig_keys = []
+
+    # load notes of chorales
+    for chorale in iterator[1:maxChorales]:             # iterator is 1-based   
+        k = chorale.parts[0].analyze('key')    
+        orig_keys.append(k.tonicPitchNameWithCase)                 
+        transpose_to_C_A(chorale.parts[0])
+        notes = notes + parseToFlatArray(chorale.parts[0])
+        notes.append((['end'], 0.0))                        # mark the end of the piece
+    
+    return notes, orig_keys
 
 # if the given chord is a note (singleton chord) then returns a list of itself, otherwise concatenates all notes in a list
 def chordToNotes(notes):
@@ -85,8 +101,11 @@ def createNoteVocabularies():
 
 # load a saved model and its weights
 def loadModelAndWeights(model_file, weights_file):
-    if os.path.exists(model_file) == False or os.path.exists(weights_file) == False:
-        raise Exception("model or weights file not found")
+    if os.path.exists(model_file) == False:
+        raise Exception("model file not found")
+
+    if os.path.exists(weights_file) == False:
+        raise Exception("weights file not found")
 
     _file = open(model_file, 'r')
     json = _file.read()
