@@ -1,5 +1,5 @@
-from config import sequence_length, generator_dir, output_dir
-from helper import loadModelAndWeights, createNoteVocabularies
+from config import sequence_length, pitch_generator_dir, output_dir
+from helper import loadModelAndWeights, createPitchVocabularies
 from music21 import note, instrument, stream, duration
 import numpy as np
 import os
@@ -19,7 +19,7 @@ number_of_notes = 500
 numer_of_discard_notes = 200
 
 # create the vocabulary
-note_vocab, note_names_vocab, note_vocab_categorical = createNoteVocabularies()
+note_vocab, note_names_vocab, note_vocab_categorical = createPitchVocabularies()
 
 note_categorical_size = note_vocab_categorical.shape[0]
 
@@ -28,7 +28,7 @@ note_to_int = dict((note, number) for number, note in enumerate(note_vocab))
 int_to_note = dict((number, note) for number, note in enumerate(note_vocab))
 
 print('loading networks...')
-generator = loadModelAndWeights(os.path.join(generator_dir, 'model.json'), os.path.join(generator_dir, 'weights-{:02d}.h5'.format(generator_epoch)))
+generator = loadModelAndWeights(os.path.join(pitch_generator_dir, 'model.json'), os.path.join(pitch_generator_dir, 'weights-{:02d}.h5'.format(generator_epoch)))
 
 # make a melody!!!
 pattern = np.eye(note_categorical_size)[np.random.choice(note_categorical_size, size=sequence_length)]

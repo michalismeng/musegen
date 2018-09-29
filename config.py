@@ -1,7 +1,7 @@
 # configuration file 
 
 # max chorales to be used for statistics, training etc...
-maxChorales = 100
+maxChorales = 5
 
 # dimension of notes embedding
 # note_embedding_dim = 16
@@ -16,7 +16,10 @@ latent_dim = 512
 # note_embedding_dir = "models/note-embedding"
 
 # directory for saving the generator network model
-generator_dir = 'models/generator'
+pitch_generator_dir = 'models/pitch-generator'
+
+# directory for saving the note generator network model
+note_generator_dir = 'models/note-generator'
 
 # directory for saving generated music samples
 output_dir = 'samples'

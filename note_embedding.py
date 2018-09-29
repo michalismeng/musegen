@@ -4,19 +4,15 @@ import matplotlib.pyplot as plt
 import os
 import os.path
 
-from helper import createNoteVocabularies, loadChorales
-from config import note_embedding_dim, note_embedding_dir
-
-# # disable GPU processing not required here (for me)
-# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"] = ""
-# # ----------------------------------------------
+from helper import createPitchVocabularies, loadChorales
 
 from keras.models import Model
 from keras.layers import Input, Dense
 
+note_embedding_dim = 16
+
 # create the vocabulary
-note_vocab, note_names_vocab, note_vocab_categorical = createNoteVocabularies()
+note_vocab, note_names_vocab, note_vocab_categorical = createPitchVocabularies()
 
 # note to integer and reversal dictinaries used to make categorical data
 note_to_int = dict((note, number) for number, note in enumerate(note_vocab))

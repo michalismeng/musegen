@@ -3,6 +3,7 @@ from keras.models import model_from_json
 from music21 import corpus, chord, note, pitch, interval
 from config import maxChorales
 import os.path
+import numpy as np
 
 def getChoralesIterator():
     iterator = corpus.chorales.Iterator()
@@ -69,7 +70,7 @@ def transpose_to(stream, basePitch, targetPitch):
     return stream.transpose(i, inPlace=True)
 
 # create notes vocabulary from A2 to A6 with pitch and midi names
-def createVocabulary():
+def createPitchVocabulary():
     n = note.Note('A2')
     note_vocab = []
     note_names_vocab = []
@@ -94,10 +95,15 @@ def transpose_to_C_A(score):
         transpose_to(score, k.tonic.name, 'A')
 
 # creates note vocabularies and categorical vocabularies
-def createNoteVocabularies():
-    note_vocab, note_names_vocab = createVocabulary()
+def createPitchVocabularies():
+    note_vocab, note_names_vocab = createPitchVocabulary()
     note_vocab_categorical = to_categorical(range(len(note_vocab)))
     return note_vocab, note_names_vocab, note_vocab_categorical
+
+# create a vocabulary from the given durations
+def createDurationVocabularySpecific(durations):
+    duration_vocab = np.unique(durations)
+    return duration_vocab
 
 # load a saved model and its weights
 def loadModelAndWeights(model_file, weights_file):

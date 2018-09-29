@@ -1,3 +1,5 @@
+# Train a model to generate pitches
+
 from music21 import *
 import numpy as np
 import os
@@ -5,8 +7,8 @@ import os.path
 
 from contextlib import redirect_stdout
 
-from helper import loadChorales, createNoteVocabularies, loadModelAndWeights
-from config import sequence_length, latent_dim, generator_dir
+from helper import loadChorales, createPitchVocabularies, loadModelAndWeights
+from config import sequence_length, latent_dim, pitch_generator_dir
 
 # disable GPU processing as the network doesn't fit in my card's memory
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -42,7 +44,7 @@ def vae_loss(y_true, y_pred):
     return loss  
 
 # create the vocabulary
-note_vocab, note_names_vocab, note_vocab_categorical = createNoteVocabularies()
+note_vocab, note_names_vocab, note_vocab_categorical = createPitchVocabularies()
 
 # size of the categorical representation of a note (since we do not use an embedding this can change, if we change the vocabulary)
 note_categorical_size = note_vocab_categorical.shape[0]
@@ -55,10 +57,6 @@ int_to_note = dict((number, note) for number, note in enumerate(note_vocab))
 print('loading chorales...')
 notes = loadChorales()
 only_notes = [chord[0] for (chord, _) in notes]         # discard durations
-
-# the encoder is no longer used !
-# load note embedding encoder
-# note_encoder = loadModelAndWeights(os.path.join(note_embedding_dir, 'encoder-model.json'), os.path.join(note_embedding_dir, 'encoder-weights.h5'))
 
 # preapre data for the network
 
@@ -119,17 +117,17 @@ generator.compile(optimizer=optimizer, loss=vae_loss)
 generator.summary()
 
 # save the model
-os.makedirs(generator_dir, exist_ok=True)
-with open(os.path.join(generator_dir, "model.json"), "w") as json_file:
+os.makedirs(pitch_generator_dir, exist_ok=True)
+with open(os.path.join(pitch_generator_dir, "model.json"), "w") as json_file:
     json_file.write(generator.to_json())
 
 # save the architecture as text
-with open(os.path.join(generator_dir, "arch.txt"), "w") as f:
+with open(os.path.join(pitch_generator_dir, "arch.txt"), "w") as f:
     with redirect_stdout(f):
         generator.summary()
 
 # wegihts will be saved every epoch
-filepath = os.path.join(generator_dir, "weights-{epoch:02d}.h5")   
+filepath = os.path.join(pitch_generator_dir, "weights-{epoch:02d}.h5")   
 
 checkpoint = ModelCheckpoint(
     filepath, monitor='val_loss', 
@@ -139,7 +137,7 @@ checkpoint = ModelCheckpoint(
 )
 
 reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=0.00001)
-csv_logger = CSVLogger(os.path.join(generator_dir, "trainning.csv"))
+csv_logger = CSVLogger(os.path.join(pitch_generator_dir, "trainning.csv"))
 
 callbacks_list = [checkpoint, reduce_lr, csv_logger]
 
