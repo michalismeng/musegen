@@ -100,6 +100,25 @@ def createPitchVocabularies():
     note_vocab_categorical = to_categorical(range(len(note_vocab)))
     return note_vocab, note_names_vocab, note_vocab_categorical
 
+def createPitchSpecificVocabularies(pitches):
+    note_vocab, note_names_vocab = createPitchVocabularySpecific(pitches)
+    note_vocab_categorical = to_categorical(range(len(note_vocab)))
+    return note_vocab, note_names_vocab, note_vocab_categorical
+
+def createPitchVocabularySpecific(pitches):
+    distinct = np.unique(pitches)  
+    note_vocab = []
+    note_names_vocab = []
+    
+    for n in distinct:
+        if n != 'rest' and n != '_' and n != 'end':            
+            note_vocab.append(n)
+        else:
+            note_vocab.append(n)
+            note_names_vocab.append(n)
+            
+    return note_vocab, note_names_vocab
+
 # create a vocabulary from the given durations
 def createDurationVocabularySpecific(durations):
     duration_vocab = np.unique(durations)

@@ -8,8 +8,8 @@ import os.path
 
 from contextlib import redirect_stdout
 
-from helper import loadChorales, createPitchVocabularies, loadModelAndWeights, createDurationVocabularySpecific
-from config import sequence_length, latent_dim, note_generator_dir
+from helper import loadChorales, createPitchSpecificVocabularies, loadModelAndWeights, createDurationVocabularySpecific
+from config import sequence_length, latent_dim_p, latent_dim_d, note_generator_dir
 
 # disable GPU processing as the network doesn't fit in my card's memory
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -59,7 +59,7 @@ print('loading chorales...')
 notes = loadChorales()
 
 # create the vocabularies for pitches and durations
-note_vocab, note_name_vocab, note_vocab_categorical = createPitchVocabularies()
+note_vocab, note_name_vocab, note_vocab_categorical = createPitchSpecificVocabularies([x[0] for (x, _) in notes])
 duration_vocab = createDurationVocabularySpecific([d for (_, d) in notes])
 duration_vocab_categorical = to_categorical(range(len(duration_vocab)))
 
@@ -120,7 +120,7 @@ durations_input = np.reshape(durations_input, (-1, sequence_length, duration_dim
 durations_output = np.reshape(np.array(durations_output), (-1, duration_dim))
 
 # split data to train and test
-train_index = int(0.85 * len(pitches_input))
+train_index = int(0.80 * len(pitches_input))
 
 pitches_input_train = pitches_input[:train_index]
 pitches_input_test = pitches_input[train_index:]
@@ -136,37 +136,34 @@ durations_output_test = durations_output[train_index:]
 
 # define the note generator network
 
-latent_dim_p = 256
-latent_dim_d = 64
-
 # layers for pitches generation (independent of durations) 
 x_p = Input(shape=(sequence_length, pitch_dim,), name='pitches_input')
-h = LSTM(256, return_sequences=True)(x_p)
-h = Dropout(0.2)(h)
-h = LSTM(512, return_sequences=True)(h)
-h = Dropout(0.1)(h)
-h = LSTM(256, return_sequences=True)(h)
+h = LSTM(256, return_sequences=True, name='h_lstm_p_1')(x_p)
+h = LSTM(512, return_sequences=True, name='h_lstm_p_2')(h)
+h = LSTM(256, return_sequences=True, name='h_lstm_p_3')(h)
 
 # VAE for pitches
 z_mean_p = TimeDistributed(Dense(latent_dim_p, kernel_initializer='uniform'))(h)
 z_log_var_p = TimeDistributed(Dense(latent_dim_p, kernel_initializer='uniform'))(h)
 z_p = Lambda(sampling)([z_mean_p, z_log_var_p])
+z_p = TimeDistributed(Dense(pitch_dim, kernel_initializer='uniform', activation='softmax'))(z_p)
 
 # layers for durations generation (independent of pitches) 
 x_d = Input(shape=(sequence_length, duration_dim, ), name='durations_input')
-h = LSTM(64, return_sequences=True)(x_d)
-h = Dropout(0.2)(h)
+h = LSTM(128, return_sequences=True)(x_d)
+h = LSTM(256, return_sequences=True)(h)
 h = LSTM(128, return_sequences=True)(h)
 
 # VAE for durations
 z_mean_d = TimeDistributed(Dense(latent_dim_d, kernel_initializer='uniform'))(h)
 z_log_var_d = TimeDistributed(Dense(latent_dim_d, kernel_initializer='uniform'))(h)
 z_d = Lambda(sampling)([z_mean_d, z_log_var_d])
+z_d = TimeDistributed(Dense(duration_dim, kernel_initializer='uniform', activation='softmax'))(z_d)
 
 # Concatenate layer to correlate and change if necessary the two generated components
 conc = Concatenate(axis=-1)([z_p, z_d])
-latent = LSTM(128, return_sequences=False)(conc)
-latent = Dense(200, activation='relu', kernel_initializer='uniform')(latent)
+latent = TimeDistributed(Dense(pitch_dim + duration_dim, kernel_initializer='uniform'))(conc)
+latent = LSTM(256, return_sequences=False)(latent)
 
 # final output layers for the two components
 o_p = Dense(pitch_dim, activation='softmax', name='pitches_output', kernel_initializer='uniform')(latent)
@@ -178,7 +175,7 @@ o_d = Dense(duration_dim, activation='softmax', name='durations_output', kernel_
 #             |              |
 #       Pitches VAE     Durations VAE
 #             \              /
-#            Shared LSTM + Dense
+#            Dense + Shared LSTM
 #             /              \
 #       Pitches out     Durations out
 
@@ -217,7 +214,7 @@ checkpoint = ModelCheckpoint(
     mode='min'
 )
 
-reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=0.0000001)
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=0.00001)
 csv_logger = CSVLogger(os.path.join(note_generator_dir, "trainning.csv"))
 
 callbacks_list = [checkpoint, reduce_lr, csv_logger]

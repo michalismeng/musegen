@@ -1,19 +1,23 @@
 # configuration file 
 
 # max chorales to be used for statistics, training etc...
-maxChorales = 5
+maxChorales = 300
 
-# dimension of notes embedding
-# note_embedding_dim = 16
+# dimension of notes embedding --- not used anymore
+note_embedding_dim = 16
 
 # sequence length for generator LSTM
 sequence_length = 128
 
-# latent dimension of VAE
+# latent dimension of VAE (used in pitch-generator)
 latent_dim = 512
 
-# directory for saving the note embedding network model
-# note_embedding_dir = "models/note-embedding"
+# latent dimensions for pitches and durations (used in note-generator)
+latent_dim_p = 512
+latent_dim_d = 256
+
+# directory for saving the note embedding network model --- not used anymore
+note_embedding_dir = "models/note-embedding"
 
 # directory for saving the generator network model
 pitch_generator_dir = 'models/pitch-generator'
